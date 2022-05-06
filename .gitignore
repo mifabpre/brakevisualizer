@@ -1,0 +1,14 @@
+cache-directory/
+__pycache__/
+testing.py
+venv
+*.pyc
+.DS_Store
+.env
+p10env
+.idea
+herokuDB.txt
+mysqlclient-1.4.6-cp38-cp38-win32.whl
+NewRequirements/
+dist
+build
