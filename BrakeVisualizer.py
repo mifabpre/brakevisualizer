@@ -5,27 +5,15 @@ Created on Fri May  3 10:59:35 2019
 @author: Miguel Fabra
 """
 
-# import math
-# import json
-# import time
-# from datetime import datetime as dtdt
-# import numpy as np
 import pandas as pd
-# import dash
-import dash_html_components as html
-import dash_core_components as dcc
-# import dash_daq as daq
-# from dash.dependencies import Input, Output, State
+import dash
+from dash.dependencies import Input, Output, State
+from dash import Dash, dcc, html, dash_table
 import plotly.graph_objs as go
 import plotly.express as px
-# import os
 import base64
 import datetime
 import io
-
-import dash
-from dash.dependencies import Input, Output, State
-import dash_table
 
 
 
@@ -100,6 +88,7 @@ app.layout = html.Div([
     dcc.Tabs(id ="tabs",
              children = [dcc.Tab(id='Results_tab', value='tab-1', label='Results'),
                          dcc.Tab(id='xyz_tab', value='tab-2', label='xyz'),
+                         dcc.Tab(id='k_tab', value='tab-4', label='k'),
                          dcc.Tab(id='File_tab', value='tab-3', label='File'),
                          ],
              value='tab-1'),
@@ -122,6 +111,12 @@ def process_outputdf(df):
     output = df
     output.magnitude = output.apply(lambda row: row.magnitude.split('.')[-1], axis=1)
 
+    Brake_Pos=None
+
+    if 'ActPos_Panel' in output.magnitude.unique():
+        Brake_Pos = output[output.magnitude == 'ActPos_Panel'][['ts', 'measure']].set_index('ts')
+        Brake_Pos.columns = ['Brake_pos [mm]']
+
     RPM = output[output.magnitude == 'RPM'][['ts', 'measure']].set_index('ts')
     RPM_avg = output[output.magnitude == 'RPM_average'][['ts', 'measure']].set_index('ts')
     Load = output[output.magnitude == 'Load'][['ts', 'measure']].set_index('ts')
@@ -134,7 +129,11 @@ def process_outputdf(df):
     Temperature.columns = ['Temperature [ºC]']
     Pressure.columns = ['Pressure [bar]']
 
-    data = pd.concat([RPM, RPM_avg, Load, Temperature, Pressure], axis=1)
+    if 'ActPos_Panel' not in output.magnitude.unique():
+        data = pd.concat([RPM, RPM_avg, Load, Temperature, Pressure], axis=1)
+    else:
+        data = pd.concat([RPM, RPM_avg, Load, Temperature, Pressure, Brake_Pos], axis=1)
+
     data = data.sort_values('ts')
     data = data.fillna(method='ffill')
     data = data.fillna(method='bfill')
@@ -150,8 +149,14 @@ def process_outputdf(df):
     Pressures['magnitude'] = 'Pressure [bar]'
     Loads = data.groupby('ts')['Load [N/m]'].mean().to_frame('measure')
     Loads['magnitude'] = 'Load [N/m]'
+    if 'ActPos_Panel' in output.magnitude.unique():
+        Brake_Poss = data.groupby('ts')['Brake_pos [mm]'].mean().to_frame('measure')
+        Brake_Poss['magnitude'] = 'Brake_pos [mm]'
+        data2 = pd.concat([RPMs, RPM_avgs, Temperatures, Pressures, Loads, Brake_Poss])
+    else:
+        data2 = pd.concat([RPMs, RPM_avgs, Temperatures, Pressures, Loads])
 
-    data2 = pd.concat([RPMs, RPM_avgs, Temperatures, Pressures, Loads])
+
     data2 = data2.reset_index()
 
     return data2
@@ -166,7 +171,7 @@ def parse_contents_df(contents, filename, date):
             # Assume that the user uploaded a CSV file
             df = pd.read_csv(
                 io.StringIO(decoded.decode('utf-8')),
-                delimiter=';',
+                sep=None, engine='python',
                 header=0, names=['id', 'ts', 'date', 'magnitude', 'measure']
             )
             df = process_outputdf(df)
@@ -188,7 +193,7 @@ def parse_contents(contents, filename, date):
             # Assume that the user uploaded a CSV file
             df = pd.read_csv(
                 io.StringIO(decoded.decode('utf-8')),
-                delimiter=';',
+                sep=None, engine='python',
                 header=0, names=['id', 'ts', 'date', 'magnitude', 'measure']
             )
             df = process_outputdf(df)
@@ -222,13 +227,13 @@ def parse_contents(contents, filename, date):
     ])
 
 @app.callback([Output('File_tab', 'children'),
-               Output('Results_tab', 'children'),
-               Output('xyz_tab', 'children')
                ],
               [Input('upload-data', 'contents')],
               [State('upload-data', 'filename'),
               State('upload-data', 'last_modified')])
 def update_output(list_of_contents, list_of_names, list_of_dates):
+    global df
+    df = None
     if list_of_contents is not None:
         children_File_tab = [
             parse_contents(c, n, d) for c, n, d in
@@ -238,48 +243,53 @@ def update_output(list_of_contents, list_of_names, list_of_dates):
             parse_contents_df(c, n, d) for c, n, d in
             zip(list_of_contents, list_of_names, list_of_dates)][0]
 
-        myid1 = ['Results']
-        fig1 = px.line(df, x='ts', y='measure', color='magnitude')
-        fig1.update_layout(hovermode='x',
-                           height=800)
-        figure1 = [fig1]
-
-        myid2 = ['xyz']
-        x = list(df[df.magnitude == 'Temperature [ºC]'].measure)
-        y = list(df[df.magnitude == 'Pressure [bar]'].measure)
-        z = list(df[df.magnitude == 'Load [N/m]'].measure)
-        fig2 = go.Figure(data=[go.Scatter3d(x=x, y=y, z=z,
-                                            mode='markers',
-                                            marker=dict(size=12,
-                                                        color=z,                # set color to an array/list of desired values
-                                                        colorscale='Viridis',   # choose a colorscale
-                                                        opacity=0.8))],)
-        fig2.update_layout(scene=dict(xaxis_title='Temperature [ºC]',
-                                      yaxis_title='Pressure [bar]',
-                                      zaxis_title='Load [N/m]'),
-                           height=800)
-        figure2 = [fig2]
-
-        return children_File_tab, singleGraph(myid1, figure1), singleGraph(myid2, figure2)
+        return children_File_tab
     else:
-        return [],[],[]
+        return [0]
 
-
-@app.callback(Output('tabs', 'children'),
-              [Input('file', 'n_clicks')])
-def update_tabs(file):
-    tab_height = 2000
-
-    children = [
-        dcc.Tab(id='Results_tab', value='tab-1', label='Results', style={'padding': '0','line-height': tab_height},
-                selected_style={'padding': '0','line-height': tab_height}),
-        dcc.Tab(id='xyz_tab', value='tab-2', label='File', style={'padding': '0', 'line-height': tab_height},
-                selected_style={'padding': '0', 'line-height': tab_height}),
-        dcc.Tab(id='File_tab', value='tab-3', label='File', style={'padding': '0', 'line-height': tab_height},
-                selected_style={'padding': '0', 'line-height': tab_height}),
-
-    ]
-    return children
+@app.callback([Output('Results_tab', 'children'),
+               Output('xyz_tab', 'children'),
+               Output('k_tab', 'children')],
+              [Input('tabs', 'value'),
+               Input('File_tab', 'children')])
+def update_tabs(tab,ch):
+    if df is not None:
+        if tab=='tab-1':
+            myid1 = ['Results']
+            fig1 = px.line(df, x='ts', y='measure', color='magnitude')
+            fig1.update_layout(hovermode='x',
+                               height=800)
+            figure1 = [fig1]
+            return singleGraph(myid1, figure1), [], []
+        elif tab=='tab-2':
+            myid2 = ['xyz']
+            x = list(df[df.magnitude == 'Temperature [ºC]'].measure)
+            y = list(df[df.magnitude == 'Pressure [bar]'].measure)
+            z = list(df[df.magnitude == 'Load [N/m]'].measure)
+            fig2 = go.Figure(data=[go.Scatter3d(x=x, y=y, z=z,
+                                                mode='markers',
+                                                marker=dict(size=12,
+                                                            color=z,                # set color to an array/list of desired values
+                                                            colorscale='Viridis',   # choose a colorscale
+                                                            opacity=0.8))],)
+            fig2.update_layout(scene=dict(xaxis_title='Temperature [ºC]',
+                                          yaxis_title='Pressure [bar]',
+                                          zaxis_title='Load [N/m]'),
+                               height=800)
+            figure2 = [fig2]
+            return [], singleGraph(myid2, figure2), []
+        elif tab=='tab-4':
+            myid3 = ['k']
+            fig3 = px.scatter(x=df[df.magnitude=='Brake_pos [mm]'].measure.values,
+                              y=df[df.magnitude=='Pressure [bar]'].measure.values)
+            fig3.update_layout(hovermode='x',
+                               height=800)
+            figure3 = [fig3]
+            return [], [], singleGraph(myid3, figure3)
+        else:
+            return [], [], []
+    else:
+        return [], [], []
 
 
 # =============================================================================
