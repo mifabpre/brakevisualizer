@@ -16,7 +16,7 @@ import datetime
 import io
 
 
-#s
+
 
 
 def singleGraph(graphid, figure):
