@@ -1640,8 +1640,4 @@ def download(download_btn, path, filename, df_id):
 
 
 if __name__ == '__main__':
-    log = logging.getLogger('werkzeug')
-    log.setLevel(logging.ERROR)
-    port = 5101
-    webbrowser.open_new("http://localhost:{}".format(port))
-    app.run_server(debug=False, use_reloader=False, port=port)
+    app.run_server(debug=False, use_reloader=False)
