@@ -3,7 +3,6 @@
 Created on Fri May  3 10:59:35 2022
 @author: Miguel Fabra, Santi Conesa, Dani Di Iorio
 """
-import html as html
 import pandas as pd
 import numpy as np
 import dash
