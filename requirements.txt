@@ -21,5 +21,6 @@ six==1.16.0
 tenacity==8.2.2
 Werkzeug==2.2.3
 zipp==3.15.0
-dash_bootstrap_components==1.4.0
+dash-bootstrap-components==1.4.0
 scipy==1.10.1
+dash-extensions==0.1.13
