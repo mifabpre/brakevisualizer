@@ -16,8 +16,6 @@ import dash_bootstrap_components as dbc
 import logging
 from plotly.subplots import make_subplots
 from dash import dcc, html, dash_table
-from tkinter import filedialog
-from tkinter import *
 from dash_extensions.enrich import MultiplexerTransform, DashProxy
 from scipy.signal import savgol_filter
 
