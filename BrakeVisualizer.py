@@ -14,6 +14,7 @@ import os
 import webbrowser
 import dash_bootstrap_components as dbc
 import logging
+import PySimpleGUI
 from plotly.subplots import make_subplots
 from dash import dcc, html, dash_table
 from dash_extensions.enrich import MultiplexerTransform, DashProxy
@@ -57,11 +58,8 @@ instructions_brakevisualizer = \
 
 
 def GetFolderPath():
-    root = Tk()
-    root.attributes('-topmost', True)
-    root.withdraw()
-    folderpath = filedialog.askdirectory()
-    root.destroy()
+    PySimpleGUI.theme('SystemDefault')
+    folderpath = PySimpleGUI.popup_get_folder('Selecciona una carpeta')
     return folderpath
 
 
