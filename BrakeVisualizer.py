@@ -15,7 +15,6 @@ import os
 import webbrowser
 import dash_bootstrap_components as dbc
 import logging
-import warnings
 from plotly.subplots import make_subplots
 from dash import dcc, html, dash_table
 from tkinter import filedialog
@@ -23,8 +22,6 @@ from tkinter import *
 from dash_extensions.enrich import MultiplexerTransform, DashProxy
 from scipy.signal import savgol_filter
 
-
-warnings.filterwarnings('ignore')
 
 text_instructions = \
     '1. Select your category with the dropdown.\n' \
