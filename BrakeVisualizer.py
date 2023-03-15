@@ -1638,6 +1638,4 @@ def download(download_btn, path, filename, df_id):
 # FUNCTION MAIN
 # =============================================================================
 
-
-if __name__ == '__main__':
-    app.run_server(debug=False, use_reloader=False)
+app.run_server(debug=False, use_reloader=False)
