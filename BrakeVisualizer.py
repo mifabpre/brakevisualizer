@@ -1623,4 +1623,4 @@ def download(download_btn, path, filename, df_id):
 # FUNCTION MAIN
 # =============================================================================
 
-app.run_server(debug=False, use_reloader=False)
+app.run_server(debug=False, use_reloader=False, port=5100)
