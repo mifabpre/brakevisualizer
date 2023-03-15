@@ -14,7 +14,6 @@ import os
 import webbrowser
 import dash_bootstrap_components as dbc
 import logging
-import PySimpleGUI
 from plotly.subplots import make_subplots
 from dash import dcc, html, dash_table
 from dash_extensions.enrich import MultiplexerTransform, DashProxy
@@ -55,12 +54,6 @@ instructions_brakevisualizer = \
             html.Blockquote(),
         ], style={"display": "grid", "grid-template-columns": "1.5% 97% 1.5%"})
     ])
-
-
-def GetFolderPath():
-    PySimpleGUI.theme('SystemDefault')
-    folderpath = PySimpleGUI.popup_get_folder('Selecciona una carpeta')
-    return folderpath
 
 
 def polynomical_regression(dataframe_temp, graph_type):
@@ -1555,7 +1548,7 @@ def update_graph_temp_slider4(slider4, figure_actual, df_id):
     dash.dependencies.Input("download", "n_clicks"),
     [dash.dependencies.State("modal", "is_open")], prevent_initial_call=True)
 def download_modal(n1, is_open):
-    path = GetFolderPath()
+    path = ''
     file_name = 'Results'
     if n1:
         return not is_open, path, file_name
