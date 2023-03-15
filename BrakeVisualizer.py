@@ -671,7 +671,7 @@ def graph_X_Y(dataframe, n_df, files_list):
 # =============================================================================
 
 
-app = DashProxy(external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True,
+app = DashProxy(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True,
                 transforms=[MultiplexerTransform()])
 server = app.server
 
@@ -1623,4 +1623,5 @@ def download(download_btn, path, filename, df_id):
 # FUNCTION MAIN
 # =============================================================================
 
-app.run_server(debug=False, use_reloader=False, port=5100)
+if __name__ == '__main__':
+    app.run_server(debug=False, use_reloader=False, port=5100)
