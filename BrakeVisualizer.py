@@ -20,6 +20,24 @@ from dash_extensions.enrich import MultiplexerTransform, DashProxy
 from scipy.signal import savgol_filter
 
 
+def _savgol_nan(values, window_length, polyorder):
+    """NaN-safe savgol_filter.
+
+    scipy >= 1.15 raises ValueError when the input contains NaN, while older
+    versions (<= 1.10) propagated the NaN through. This helper keeps the old
+    behavior: it filters finite values and preserves NaN positions as gaps.
+    """
+    arr = np.asarray(values, dtype=float)
+    mask = np.isnan(arr)
+    if mask.all():
+        return arr
+    if mask.any():
+        filled = np.where(mask, np.nanmedian(arr), arr)
+        result = savgol_filter(filled, window_length, polyorder)
+        return np.where(mask, np.nan, result)
+    return savgol_filter(arr, window_length, polyorder)
+
+
 text_instructions = \
     '1. Select your category with the dropdown.\n' \
     '2. Drag and drop or select files (Maximum 10 test files).\n' \
@@ -799,14 +817,14 @@ def Process_Output_df(df_process, df_id):
 
         output.at[i, 'df_id'] = df_id
 
-    output['RPM'] = savgol_filter(output['RPM'], 20, 3)
-    output['Pressure'] = savgol_filter(output['Pressure'], 10, 3)
-    output['Temperature'] = savgol_filter(output['Temperature'], 10, 3)
-    output['Load'] = savgol_filter(output['Load'], 10, 3)
+    output['RPM'] = _savgol_nan(output['RPM'], 20, 3)
+    output['Pressure'] = _savgol_nan(output['Pressure'], 10, 3)
+    output['Temperature'] = _savgol_nan(output['Temperature'], 10, 3)
+    output['Load'] = _savgol_nan(output['Load'], 10, 3)
 
     output['Pressure_diff'] = output['Pressure'].diff()
-    output['Pressure_diff'] = savgol_filter(output['Pressure_diff'], 10, 3)
-    output['Mu'] = savgol_filter(output['Mu_No_Filtered'], 10, 3)
+    output['Pressure_diff'] = _savgol_nan(output['Pressure_diff'], 10, 3)
+    output['Mu'] = _savgol_nan(output['Mu_No_Filtered'], 10, 3)
 
     for i in range(1, len(output['Timestamp']) + 1):
         if output.at[i, 'Pressure_diff'] > 1:
@@ -1624,4 +1642,4 @@ def download(download_btn, path, filename, df_id):
 # =============================================================================
 
 if __name__ == '__main__':
-    app.run_server(debug=False, use_reloader=False, port=5100)
+    app.run(debug=False, use_reloader=False, port=5100)
